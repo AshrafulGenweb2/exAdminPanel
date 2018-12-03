@@ -25,7 +25,8 @@ class SuperAdminController extends Controller
      */
     public function index()
     {
-        $adminUsers = User::all();
+
+        $adminUsers = User::where('user_type','WEB_ADMIN')->get();
 
         return view('adminList',compact('adminUsers'));
     }

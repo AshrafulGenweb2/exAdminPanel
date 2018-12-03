@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\User;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Foundation\Auth\RegistersUsers;
+use App\User;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
-class RegisterController extends Controller
+class AppUserRegisterController extends Controller
 {
     /*
     |--------------------------------------------------------------------------
@@ -38,7 +38,21 @@ class RegisterController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('auth');
+        $this->middleware('guest');
+    }
+
+    /**
+     * The user has been registered.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  mixed  $user
+     * @return mixed
+     */
+    protected function registered(Request $request, $user)
+    {
+        $user->generateToken();
+
+        return response()->json(['data' => $user->toArray()], 201);
     }
 
     /**
@@ -50,9 +64,9 @@ class RegisterController extends Controller
     protected function validator(array $data)
     {
         return Validator::make($data, [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6|confirmed',
+            'name' => 'required|max:255',
+            'email' => 'required|email|max:255|unique:users',
+            'password' => 'required|min:6|confirmed',
         ]);
     }
 
@@ -60,42 +74,28 @@ class RegisterController extends Controller
      * Create a new user instance after a valid registration.
      *
      * @param  array  $data
-     * @return \App\User
+     * @return User
      */
-    protected function createWebAdmin(array $data)
+
+    protected function createAppUser(array $data)
     {
         $user = new User();
         $user->name = $data['name'];
         $user->email = $data['email'];
         $user->password = bcrypt($data['password']);
-        $user->user_type = 'WEB_ADMIN';
+        $user->user_type = 'APP_USER';
         $user->save();
         return $user;
     }
 
-    /**
-     * override
-
-     */
-    public function showRegistrationForm()
-    {
-        return view('auth.register');
-    }
-
-    /**
-     * override
-
-     */
-    public function registerWebAdmin(Request $request)
+    public function register(Request $request)
     {
         $this->validator($request->all())->validate();
-        event(new Registered($user = $this->createWebAdmin($request->all())));
-        return redirect()->route('home');
-    }
+        event(new Registered($user = $this->createAppUser($request->all())));
 
-    protected function registered(Request $request, $user)
-    {
-        //
-    }
+        $this->guard()->login($user);
 
+        return $this->registered($request, $user)
+            ?: redirect($this->redirectPath());
+    }
 }

@@ -5,8 +5,9 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
-class LoginController extends Controller
+class AppUserLoginController extends Controller
 {
     /*
     |--------------------------------------------------------------------------
@@ -28,43 +29,19 @@ class LoginController extends Controller
      */
     protected $redirectTo = '/home';
 
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        $this->middleware('guest')->except('logout');
-    }
-
-    public function showLoginForm()
-    {
-        return view('auth.login');
-    }
-
     public function login(Request $request)
     {
-        $request['user_type']='WEB_ADMIN';
+        $request['user_type']='APP_USER';
         $this->validateLogin($request);
 
-        // If the class is using the ThrottlesLogins trait, we can automatically throttle
-        // the login attempts for this application. We'll key this by the username and
-        // the IP address of the client making these requests into this application.
-        if ($this->hasTooManyLoginAttempts($request)) {
-            $this->fireLockoutEvent($request);
-
-            return $this->sendLockoutResponse($request);
-        }
-
         if ($this->attemptLogin($request)) {
-            return $this->sendLoginResponse($request);
-        }
+            $user = $this->guard()->user();
+            $user->generateToken();
 
-        // If the login attempt was unsuccessful we will increment the number of attempts
-        // to login and redirect the user back to the login form. Of course, when this
-        // user surpasses their maximum number of attempts they will get locked out.
-        $this->incrementLoginAttempts($request);
+            return response()->json([
+                'data' => $user->toArray(),
+            ]);
+        }
 
         return $this->sendFailedLoginResponse($request);
     }
@@ -78,14 +55,23 @@ class LoginController extends Controller
         ]);
     }
 
-    protected function sendLoginResponse(Request $request)
+    public function logout(Request $request)
     {
-        $request->session()->regenerate();
+        $user = Auth::guard('api')->user();
 
-        $this->clearLoginAttempts($request);
+        if ($user) {
+            $user->api_token = null;
+            $user->save();
+        }
 
-        return $this->authenticated($request, $this->guard()->user())
-            ?: redirect()->intended($this->redirectPath());
+        return response()->json([ 'data' => 'User logged out.' ], 200);
+    }
+
+    protected function sendFailedLoginResponse(Request $request)
+    {
+        $errors = [ 'error' => trans('auth.failed') ];
+
+        return response()->json($errors, 422);
     }
 
     protected function attemptLogin(Request $request)
@@ -105,4 +91,16 @@ class LoginController extends Controller
     {
         return $request->only($this->username(), 'password','user_type');
     }
+
+    /**
+     * Create a new controller instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        $this->middleware('guest', ['except' => 'logout']);
+    }
+
+
 }

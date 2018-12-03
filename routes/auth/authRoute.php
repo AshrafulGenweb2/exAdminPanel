@@ -46,5 +46,5 @@ Route::get('register', [
 ]);
 Route::post('register', [
     'as' => '',
-    'uses' => 'Auth\RegisterController@register'
+    'uses' => 'Auth\RegisterController@registerWebAdmin'
 ]);
