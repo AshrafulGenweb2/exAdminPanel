@@ -15,6 +15,10 @@
                 <a href="{{ route('adminList') }}"><i class="fa fa-book"></i>Admin List</a>
             </li>
 
+            <li class="{{ Request::is('appUserList') ? 'active' : '' }}">
+                <a href="{{ route('appUserList') }}"><i class="fa fa-book"></i>App User List</a>
+            </li>
+
             <li class="{{ Request::is('register') ? 'active' : '' }}">
                 <a href="{{ route('register') }}"><i class="fa fa-book"></i>Create New Admin</a>
             </li>

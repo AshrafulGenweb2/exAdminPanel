@@ -19,3 +19,4 @@ require __DIR__.'/auth/authRoute.php';
 
 Route::get('/home', 'HomeController@index')->name('home');
 Route::get('/adminList', 'SuperAdminController@index')->name('adminList');
+Route::get('/appUserList', 'AppUserController@index')->name('appUserList');
